@@ -9,12 +9,16 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from markupsafe import escape
 
 load_dotenv()
+ALLOWED_DOMAINS = ["https://vetblog.netlify.app", "http://localhost:4321"]
 MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
 MAIL_SECRET = os.environ.get("MAIL_SECRET")
 
 SHAPE_MSG = "improper JSON shape"
 URL = "https://api.mailjet.com/v3.1/send"
-FROM = {"name": "Weterynarz na dyżurze, Ania Ganowska - Vetblog", "email": "weterynarznadyzurze@gmail.com"}
+FROM = {
+    "name": "Weterynarz na dyżurze, Ania Ganowska - Vetblog",
+    "email": "weterynarznadyzurze@gmail.com",
+}
 
 
 def validate_emails(email_dict):
@@ -67,6 +71,12 @@ def send_email(validated_json: dict):
     return resp
 
 
+def handle_multiple_CORS(request: Request):
+    origin = request.headers.get("Origin")
+    if origin in ALLOWED_DOMAINS:
+        return {"Access-Control-Allow-Origin": origin}
+
+
 @functions_framework.http
 def send_mail(request: Request):
     """HTTP Cloud Function.
@@ -78,7 +88,24 @@ def send_mail(request: Request):
         Response object using `make_response`
         <https://flask.palletsprojects.com/en/1.1.x/api/#flask.make_response>.
     """
+    if request.method == "OPTIONS":
+        header = handle_multiple_CORS(request)
+        headers = {
+            **header,
+            # "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Max-Age": "3600",
+        }
+
+        return ("", 204, headers)
+
     validate_method(request)
+    # Set CORS headers for the main request
+    header = handle_multiple_CORS(request)
+    headers = {
+        **header,
+    }
 
     request_json = request.get_json()
 
@@ -92,4 +119,4 @@ def send_mail(request: Request):
             response=Response(response=resp.content, status=resp.status_code),
         )
 
-    return resp.json()
+    return (resp.json(), 200, headers)
