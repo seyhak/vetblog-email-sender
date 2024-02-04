@@ -1,0 +1,4 @@
+.env
+*.pyc
+.env.yaml
+.env.seyhak.yaml

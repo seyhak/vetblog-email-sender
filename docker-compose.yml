@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  vetblog-email-sender:
+    build:
+      dockerfile: Dockerfile
+    volume:
+      - ./:/usr/src/app
+    ports:
+      - "8080:8080
